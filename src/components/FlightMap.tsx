@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -15,6 +15,27 @@ import { Network, NetworkSnapshot, NormalizedPilot, NormalizedAtc } from "@/type
 import FlightDetailPanel from "./FlightDetailPanel";
 
 const REFRESH_INTERVAL_MS = 15_000; // calé sur la fréquence de mise à jour VATSIM
+const MAX_EXTRAPOLATION_SEC = 25; // sécurité si un refresh tarde à arriver
+
+// Calcule la position d'un avion après un temps écoulé, à partir de sa
+// dernière position connue, son cap et sa vitesse sol (méthode du point
+// estimé / "dead reckoning", utilisée en navigation réelle)
+function destinationPoint(
+  lat: number,
+  lon: number,
+  bearingDeg: number,
+  distanceKm: number
+): [number, number] {
+  const R = 6371; // rayon terrestre en km
+  const δ = distanceKm / R;
+  const θ = (bearingDeg * Math.PI) / 180;
+  const φ1 = (lat * Math.PI) / 180;
+  const λ1 = (lon * Math.PI) / 180;
+  const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
+  const λ2 =
+    λ1 + Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1), Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
+  return [(φ2 * 180) / Math.PI, (((λ2 * 180) / Math.PI + 540) % 360) - 180];
+}
 
 const NETWORK_COLOR: Record<Network, string> = {
   vatsim: "#1f4e79", // bleu carte aéronautique
@@ -159,6 +180,7 @@ export default function FlightMap({ network }: { network: Network }) {
             pilot={pilot}
             network={network}
             onSelect={setSelectedPilot}
+            fetchedAtMs={Date.parse(snapshot.fetchedAt)}
           />
         ))}
 
@@ -182,14 +204,44 @@ function PilotMarker({
   pilot,
   network,
   onSelect,
+  fetchedAtMs,
 }: {
   pilot: NormalizedPilot;
   network: Network;
   onSelect: (pilot: NormalizedPilot) => void;
+  fetchedAtMs: number;
 }) {
   const accent = NETWORK_COLOR[network];
+  const markerRef = useRef<L.Marker | null>(null);
+
+  // Fait avancer l'avion en continu entre deux refresh de données, en
+  // extrapolant sa position à partir de son cap et sa vitesse sol. Mis à
+  // jour directement sur l'instance Leaflet (pas via setState React) pour
+  // rester fluide même avec des centaines d'avions affichés.
+  useEffect(() => {
+    const animate = () => {
+      const elapsedSec = Math.min(
+        (Date.now() - fetchedAtMs) / 1000,
+        MAX_EXTRAPOLATION_SEC
+      );
+      const speedKmh = pilot.groundspeed * 1.852;
+      const distanceKm = speedKmh * (elapsedSec / 3600);
+      const [lat, lon] = destinationPoint(
+        pilot.latitude,
+        pilot.longitude,
+        pilot.heading,
+        distanceKm
+      );
+      markerRef.current?.setLatLng([lat, lon]);
+    };
+    animate();
+    const interval = setInterval(animate, 200);
+    return () => clearInterval(interval);
+  }, [pilot.latitude, pilot.longitude, pilot.heading, pilot.groundspeed, fetchedAtMs]);
+
   return (
     <Marker
+      ref={markerRef}
       position={[pilot.latitude, pilot.longitude]}
       icon={planeIcon(pilot.heading, network)}
       eventHandlers={{ click: () => onSelect(pilot) }}
