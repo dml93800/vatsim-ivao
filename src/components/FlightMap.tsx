@@ -44,9 +44,9 @@ function atcIcon(network: Network) {
   const color = NETWORK_COLOR[network];
   return L.divIcon({
     className: "atc-icon",
-    html: `<div style="width: 10px; height: 10px; background: ${color}; border: 1px solid #06100a; transform: rotate(45deg); box-shadow: 0 0 6px ${color}99;"></div>`,
-    iconSize: [10, 10],
-    iconAnchor: [5, 5],
+    html: `<div style="width: 13px; height: 13px; background: ${color}; border: 2px solid #ffffff; transform: rotate(45deg); box-shadow: 0 0 8px 2px ${color}cc;"></div>`,
+    iconSize: [13, 13],
+    iconAnchor: [6, 6],
   });
 }
 
@@ -118,9 +118,13 @@ export default function FlightMap({ network }: { network: Network }) {
         </div>
       )}
 
+      <div className="radar-sweep" style={{ background: `conic-gradient(from 0deg, ${accent}1a 0deg, ${accent}00 25deg, ${accent}00 360deg)` }} />
+
+      {/* Teinte de couleur en surimpression : ambiance scope sans écraser
+          le contraste des frontières/labels (contrairement à un filter CSS lourd) */}
       <div
-        className="radar-sweep"
-        style={{ background: `conic-gradient(from 0deg, ${accent}1a 0deg, ${accent}00 25deg, ${accent}00 360deg)` }}
+        className="absolute inset-0 pointer-events-none z-[420]"
+        style={{ backgroundColor: accent, opacity: 0.1, mixBlendMode: "color" }}
       />
 
       <MapContainer

@@ -39,9 +39,9 @@ body {
   mix-blend-mode: screen;
 }
 
-/* Teinte les tuiles de carte vers le vert phosphore plutôt que le gris neutre */
+/* Filtre doux : garde la lisibilité des frontières/labels, juste un peu plus contrasté */
 .scope-tiles {
-  filter: brightness(0.55) saturate(0.4) hue-rotate(60deg) contrast(1.15);
+  filter: brightness(0.9) contrast(1.2);
 }
 
 @keyframes blink {
