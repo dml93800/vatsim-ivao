@@ -6,7 +6,7 @@ const VATSIM_DATA_URL = "https://data.vatsim.net/v3/vatsim-data.json";
 // ICAO -> [lat, lon]. Le flux VATSIM v3 ne fournit PAS les coordonnées des
 // contrôleurs directement, seulement leur callsign (ex: "LFPG_TWR"). On
 // déduit donc la position depuis le code OACI préfixant le callsign.
-const AIRPORTS: Record<string, [number, number]> = airportsData as unknown as Record
+const AIRPORTS = airportsData as unknown as Record<string, [number, number]>;
   string,
   [number, number]
 >;
