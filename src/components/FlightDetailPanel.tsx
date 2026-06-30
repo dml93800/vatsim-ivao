@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Network, NormalizedPilot } from "@/types/flight";
 
 const NETWORK_COLOR: Record<Network, string> = {
-  vatsim: "#3cff8e",
-  ivao: "#ffb13d",
+  vatsim: "#1f4e79",
+  ivao: "#8b2f4b",
 };
 
 // pics.avs.io attend le code IATA (2 lettres), alors que le callsign VATSIM/IVAO
@@ -135,11 +135,11 @@ export default function FlightDetailPanel({
 
   return (
     <div
-      className="absolute top-0 right-0 h-full w-[440px] max-w-[92vw] bg-scope-panel border-l z-[1100] flex flex-col font-mono text-scope-text overflow-y-auto"
+      className="absolute top-0 right-0 h-full w-[440px] max-w-[92vw] bg-chart-paper-dark border-l z-[1100] flex flex-col font-mono text-chart-ink overflow-y-auto"
       style={{ borderColor: accent }}
     >
       {/* Photo de l'appareil en bandeau, ou un fond neutre si pas trouvée */}
-      <div className="relative w-full h-[220px] bg-scope-bg border-b border-scope-line shrink-0">
+      <div className="relative w-full h-[220px] bg-chart-paper border-b border-chart-line shrink-0">
         {aircraftPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -148,17 +148,17 @@ export default function FlightDetailPanel({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-scope-dim text-[11px] tracking-widest">
+          <div className="w-full h-full flex items-center justify-center text-chart-ink-dim text-[11px] tracking-widest">
             PHOTO INDISPONIBLE
           </div>
         )}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center bg-scope-bg/80 border border-scope-line text-scope-text text-lg hover:text-red-400 hover:border-red-400 transition-colors"
+          className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center bg-chart-paper/80 border border-chart-line text-chart-ink text-lg hover:text-red-400 hover:border-red-400 transition-colors"
         >
           ✕
         </button>
-        <div className="absolute bottom-0 left-0 right-0 px-4 py-2.5 bg-scope-bg/80 backdrop-blur-sm flex items-center gap-3">
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-2.5 bg-chart-paper/80 backdrop-blur-sm flex items-center gap-3">
           {logoUrl && !logoFailed && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -176,22 +176,22 @@ export default function FlightDetailPanel({
 
       <div className="p-5 flex flex-col gap-5 text-[13px]">
         <div>
-          <div className="text-scope-dim text-[11px] tracking-widest mb-1">PILOTE</div>
+          <div className="text-chart-ink-dim text-[11px] tracking-widest mb-1">PILOTE</div>
           <div className="text-[14px]">{pilot.pilotName ?? "Inconnu"}</div>
         </div>
 
         <div>
-          <div className="text-scope-dim text-[11px] tracking-widest mb-1.5">ROUTE</div>
-          <div className="flex items-center justify-between bg-scope-bg border border-scope-line px-4 py-3">
+          <div className="text-chart-ink-dim text-[11px] tracking-widest mb-1.5">ROUTE</div>
+          <div className="flex items-center justify-between bg-chart-paper border border-chart-line px-4 py-3">
             <div className="text-center">
               <div className="text-2xl font-bold" style={{ color: accent }}>
                 {pilot.departure ?? "????"}
               </div>
             </div>
             <div className="flex-1 flex flex-col items-center px-3">
-              <span className="text-scope-dim text-[11px]">{formatDuration(pilot.logonTime, now)}</span>
-              <div className="w-full h-px bg-scope-line my-1.5" />
-              <span className="text-scope-dim text-[11px]">EN VOL</span>
+              <span className="text-chart-ink-dim text-[11px]">{formatDuration(pilot.logonTime, now)}</span>
+              <div className="w-full h-px bg-chart-line my-1.5" />
+              <span className="text-chart-ink-dim text-[11px]">EN VOL</span>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold" style={{ color: accent }}>
@@ -203,27 +203,27 @@ export default function FlightDetailPanel({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-scope-dim text-[11px] tracking-widest mb-1">ALTITUDE</div>
+            <div className="text-chart-ink-dim text-[11px] tracking-widest mb-1">ALTITUDE</div>
             <div className="text-[14px]">FL{Math.round(pilot.altitude / 100)}</div>
           </div>
           <div>
-            <div className="text-scope-dim text-[11px] tracking-widest mb-1">VITESSE</div>
+            <div className="text-chart-ink-dim text-[11px] tracking-widest mb-1">VITESSE</div>
             <div className="text-[14px]">{pilot.groundspeed} kt</div>
           </div>
           <div>
-            <div className="text-scope-dim text-[11px] tracking-widest mb-1">APPAREIL</div>
+            <div className="text-chart-ink-dim text-[11px] tracking-widest mb-1">APPAREIL</div>
             <div className="text-[14px]">{pilot.aircraftType ?? "N/A"}</div>
           </div>
           <div>
-            <div className="text-scope-dim text-[11px] tracking-widest mb-1">RÉSEAU</div>
+            <div className="text-chart-ink-dim text-[11px] tracking-widest mb-1">RÉSEAU</div>
             <div className="text-[14px]" style={{ color: accent }}>{network.toUpperCase()}</div>
           </div>
         </div>
 
         {pilot.route && (
           <div>
-            <div className="text-scope-dim text-[11px] tracking-widest mb-1">PLAN DE VOL</div>
-            <div className="text-[12px] text-scope-dim leading-relaxed break-words">
+            <div className="text-chart-ink-dim text-[11px] tracking-widest mb-1">PLAN DE VOL</div>
+            <div className="text-[12px] text-chart-ink-dim leading-relaxed break-words">
               {pilot.route}
             </div>
           </div>

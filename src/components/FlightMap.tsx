@@ -17,8 +17,8 @@ import FlightDetailPanel from "./FlightDetailPanel";
 const REFRESH_INTERVAL_MS = 15_000; // calé sur la fréquence de mise à jour VATSIM
 
 const NETWORK_COLOR: Record<Network, string> = {
-  vatsim: "#3cff8e", // vert phosphore
-  ivao: "#ffb13d", // ambre
+  vatsim: "#1f4e79", // bleu carte aéronautique
+  ivao: "#8b2f4b", // magenta carte aéronautique
 };
 
 // Icône avion en SVG, tournée via transform CSS selon le heading
@@ -29,8 +29,8 @@ function planeIcon(heading: number, network: Network) {
   const rotation = heading - 45;
   return L.divIcon({
     className: "plane-icon",
-    html: `<div style="transform: rotate(${rotation}deg); width: 20px; height: 20px; filter: drop-shadow(0 0 3px ${color}aa);">
-      <svg viewBox="0 0 122.88 122.88" fill="${color}" xmlns="http://www.w3.org/2000/svg">
+    html: `<div style="transform: rotate(${rotation}deg); width: 18px; height: 18px;">
+      <svg viewBox="0 0 122.88 122.88" fill="${color}" stroke="#f3e9d2" stroke-width="4" xmlns="http://www.w3.org/2000/svg">
         <path d="M16.63,105.75c0.01-4.03,2.3-7.97,6.03-12.38L1.09,79.73c-1.36-0.59-1.33-1.42-0.54-2.4l4.57-3.9
           c0.83-0.51,1.71-0.73,2.66-0.47l26.62,4.5l22.18-24.02L4.8,18.41c-1.31-0.77-1.42-1.64-0.07-2.65l7.47-5.96l67.5,18.97L99.64,7.45
           c6.69-5.79,13.19-8.38,18.18-7.15c2.75,0.68,3.72,1.5,4.57,4.08c1.65,5.06-0.91,11.86-6.96,18.86L94.11,43.18l18.97,67.5
@@ -39,8 +39,8 @@ function planeIcon(heading: number, network: Network) {
           L16.63,105.75z"/>
       </svg>
     </div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
   });
 }
 
@@ -49,16 +49,16 @@ function atcIcon(network: Network) {
   const color = NETWORK_COLOR[network];
   return L.divIcon({
     className: "atc-icon",
-    html: `<div style="width: 18px; height: 18px; filter: drop-shadow(0 0 4px ${color}cc);">
-      <svg viewBox="0 0 485 485" fill="${color}" xmlns="http://www.w3.org/2000/svg">
+    html: `<div style="width: 16px; height: 16px;">
+      <svg viewBox="0 0 485 485" fill="${color}" stroke="#f3e9d2" stroke-width="10" xmlns="http://www.w3.org/2000/svg">
         <path d="M450.463,211.887h-94.811l23.411-115.613H257.5V0h-30v96.274H105.938l23.411,115.613H34.537L64.022,357.5h121.925V485h30
           V357.5h53.105V485h30V357.5h121.925L450.463,211.887z M257.5,241.887h63.215l-8.668,85.613H257.5V241.887z M227.5,327.5h-54.547
           l-8.668-85.613H227.5V327.5z M142.621,126.274h199.758l-17.335,85.613H159.956L142.621,126.274z M71.221,241.887h62.911
           l8.668,85.613H88.557L71.221,241.887z M396.443,327.5h-54.242l8.668-85.613h62.911L396.443,327.5z"/>
       </svg>
     </div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 18],
+    iconSize: [16, 16],
+    iconAnchor: [8, 16],
   });
 }
 
@@ -111,42 +111,33 @@ export default function FlightMap({ network }: { network: Network }) {
   }, [fetchData]);
 
   return (
-    <div className="relative w-full h-full bg-scope-bg radar-grid">
+    <div className="relative w-full h-full bg-chart-paper chart-grid">
       {loading && (
         <div
-          className="absolute top-3 left-3 z-[1000] bg-scope-panel/90 border px-3 py-1.5 font-mono text-xs tracking-widest"
+          className="absolute top-3 left-3 z-[1000] bg-chart-paper-dark border px-3 py-1.5 font-mono text-xs tracking-widest"
           style={{ borderColor: accent, color: accent }}
         >
-          SYNC {network.toUpperCase()}...
+          Synchronisation {network.toUpperCase()}...
         </div>
       )}
       {error && (
-        <div className="absolute top-3 left-3 z-[1000] bg-scope-panel/95 text-red-400 px-3 py-1.5 font-mono text-xs border border-red-500/50 tracking-widest">
+        <div className="absolute top-3 left-3 z-[1000] bg-chart-paper-dark text-red-700 px-3 py-1.5 font-mono text-xs border border-red-700/50 tracking-widest">
           ⚠ {error}
         </div>
       )}
       {snapshot && !error && (
         <div
-          className="absolute top-3 left-3 z-[1000] bg-scope-panel/90 border px-3 py-1.5 font-mono text-xs tracking-widest flex gap-5"
+          className="absolute top-3 left-3 z-[1000] bg-chart-paper-dark border px-3 py-1.5 font-mono text-xs tracking-widest flex gap-5"
           style={{ borderColor: accent }}
         >
           <span style={{ color: accent }}>
             ✈ {String(snapshot.pilots.length).padStart(4, "0")} VOLS
           </span>
-          <span className="text-scope-dim">
+          <span className="text-chart-ink-dim">
             ◆ {String(snapshot.atc.length).padStart(3, "0")} ATC
           </span>
         </div>
       )}
-
-      <div className="radar-sweep" style={{ background: `conic-gradient(from 0deg, ${accent}1a 0deg, ${accent}00 25deg, ${accent}00 360deg)` }} />
-
-      {/* Teinte de couleur en surimpression : ambiance scope sans écraser
-          le contraste des frontières/labels (contrairement à un filter CSS lourd) */}
-      <div
-        className="absolute inset-0 pointer-events-none z-[420]"
-        style={{ backgroundColor: accent, opacity: 0.1, mixBlendMode: "color" }}
-      />
 
       <MapContainer
         center={[20, 10]}
@@ -154,13 +145,12 @@ export default function FlightMap({ network }: { network: Network }) {
         minZoom={2}
         worldCopyJump
         className="w-full h-full"
-        style={{ background: "transparent" }}
+        style={{ background: "#f3e9d2" }}
       >
         <FitBoundsOnce />
         <TileLayer
-          className="scope-tiles"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
 
         {snapshot?.pilots.map((pilot) => (
@@ -206,7 +196,7 @@ function PilotMarker({
     >
       <Popup>
         <div
-          className="font-mono text-[11px] bg-scope-panel border-l-4 px-3 py-2 w-[180px] text-scope-text"
+          className="font-mono text-[11px] bg-chart-paper-dark border-l-4 px-3 py-2 w-[180px] text-chart-ink"
           style={{ borderColor: accent }}
         >
           <div className="font-bold tracking-wider mb-1" style={{ color: accent }}>
@@ -214,10 +204,10 @@ function PilotMarker({
           </div>
           <div className="flex justify-between">
             <span>{pilot.departure ?? "????"}</span>
-            <span className="text-scope-dim">→</span>
+            <span className="text-chart-ink-dim">→</span>
             <span>{pilot.arrival ?? "????"}</span>
           </div>
-          <div className="text-scope-dim text-[10px] mt-1">
+          <div className="text-chart-ink-dim text-[10px] mt-1">
             Clic sur l&apos;avion pour le détail complet
           </div>
         </div>
@@ -233,19 +223,19 @@ function AtcMarker({ atc, network }: { atc: NormalizedAtc; network: Network }) {
       <Marker position={[atc.latitude, atc.longitude]} icon={atcIcon(network)}>
         <Popup>
           <div
-            className="font-mono text-[11px] bg-scope-panel border-l-4 px-3 py-2 w-[190px] text-scope-text"
+            className="font-mono text-[11px] bg-chart-paper-dark border-l-4 px-3 py-2 w-[190px] text-chart-ink"
             style={{ borderColor: accent }}
           >
             <div className="flex justify-between items-baseline mb-1">
               <span className="font-bold tracking-wider" style={{ color: accent }}>
                 {atc.callsign}
               </span>
-              <span className="text-scope-dim text-[10px]">{atc.facilityType}</span>
+              <span className="text-chart-ink-dim text-[10px]">{atc.facilityType}</span>
             </div>
-            <div className="text-scope-dim text-[10px] truncate">
+            <div className="text-chart-ink-dim text-[10px] truncate">
               {atc.controllerName ?? "—"}
             </div>
-            <div className="border-t border-scope-line pt-1 mt-1">
+            <div className="border-t border-chart-line pt-1 mt-1">
               FREQ {atc.frequency ?? "—"}
             </div>
           </div>
@@ -258,9 +248,9 @@ function AtcMarker({ atc, network }: { atc: NormalizedAtc; network: Network }) {
           pathOptions={{
             color: accent,
             weight: 1,
-            opacity: 0.4,
+            opacity: 0.5,
             dashArray: "4 6",
-            fillOpacity: 0.03,
+            fillOpacity: 0.04,
           }}
         />
       ) : null}

@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #060a08;
-  --foreground: #e8ffef;
+  --background: #f3e9d2;
+  --foreground: #3b2f23;
 }
 
 body {
@@ -12,41 +12,17 @@ body {
   background: var(--background);
 }
 
-/* Grille radar en fond : cercles concentriques façon scope ATC */
-.radar-grid {
+/* Texture papier + grille de coordonnées façon carte de navigation aéronautique */
+.chart-grid {
   background-image:
-    repeating-radial-gradient(
-      circle at center,
-      rgba(60, 255, 142, 0.05) 0px,
-      rgba(60, 255, 142, 0.05) 1px,
-      transparent 1px,
-      transparent 80px
-    );
-}
-
-/* Balayage radar : un secteur lumineux qui tourne lentement, très discret */
-@keyframes sweep {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.radar-sweep {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 450;
-  animation: sweep 8s linear infinite;
-  mix-blend-mode: screen;
-}
-
-/* Filtre doux : garde la lisibilité des frontières/labels, juste un peu plus contrasté */
-.scope-tiles {
-  filter: brightness(0.9) contrast(1.2);
+    linear-gradient(rgba(59, 47, 35, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 47, 35, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
 }
 
 @keyframes blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  50% { opacity: 0.3; }
 }
 
 .live-dot {
@@ -66,4 +42,5 @@ body {
 
 .leaflet-container {
   font-family: var(--font-mono), ui-monospace, monospace;
+  background: transparent;
 }

@@ -7,8 +7,8 @@ import { Network } from "@/types/flight";
 const FlightMap = dynamic(() => import("@/components/FlightMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center text-scope-green font-mono text-sm tracking-widest">
-      INITIALISATION DU SCOPE...
+    <div className="w-full h-full flex items-center justify-center text-chart-ink font-serif text-lg tracking-wide">
+      Chargement de la carte...
     </div>
   ),
 });
@@ -17,26 +17,26 @@ export default function Home() {
   const [network, setNetwork] = useState<Network>("vatsim");
 
   return (
-    <main className="w-screen h-screen flex flex-col bg-scope-bg font-sans">
-      <header className="flex items-center justify-between px-5 py-3 bg-scope-panel border-b border-scope-line z-[1100]">
+    <main className="w-screen h-screen flex flex-col bg-chart-paper font-mono">
+      <header className="flex items-center justify-between px-6 py-3 bg-chart-paper-dark border-b-2 border-chart-ink/20 z-[1100]">
         <div className="flex items-center gap-3">
-          <span className="w-2 h-2 rounded-full bg-scope-green live-dot shadow-[0_0_8px_#3cff8e]" />
-          <h1 className="text-scope-text font-mono font-bold text-base tracking-[0.15em]">
-            FLIGHT<span className="text-scope-green">TRACK</span>
+          <span className="w-2 h-2 rounded-full bg-chart-blue live-dot" />
+          <h1 className="text-chart-ink font-serif font-semibold text-xl tracking-wide">
+            FlightTrack
           </h1>
         </div>
 
-        <div className="flex items-center gap-0.5 bg-scope-bg rounded-sm p-0.5 border border-scope-line">
+        <div className="flex items-center gap-1 bg-chart-paper rounded-sm p-1 border border-chart-line">
           {(["vatsim", "ivao"] as Network[]).map((n) => (
             <button
               key={n}
               onClick={() => setNetwork(n)}
-              className={`px-4 py-1.5 rounded-sm text-xs font-mono font-bold tracking-widest transition-colors ${
+              className={`px-4 py-1.5 rounded-sm text-xs font-mono font-semibold tracking-widest transition-colors ${
                 network === n
                   ? n === "vatsim"
-                    ? "bg-scope-green/15 text-scope-green border border-scope-green/40"
-                    : "bg-scope-amber/15 text-scope-amber border border-scope-amber/40"
-                  : "text-scope-dim border border-transparent hover:text-scope-text"
+                    ? "bg-chart-blue/10 text-chart-blue border border-chart-blue/40"
+                    : "bg-chart-magenta/10 text-chart-magenta border border-chart-magenta/40"
+                  : "text-chart-ink-dim border border-transparent hover:text-chart-ink"
               }`}
             >
               {n.toUpperCase()}

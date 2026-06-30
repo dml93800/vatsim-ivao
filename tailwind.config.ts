@@ -11,21 +11,19 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        scope: {
-          bg: "#060a08",
-          panel: "#0d1410",
-          line: "#1b2b22",
-          green: "#3cff8e",
-          "green-dim": "#1d8a52",
-          amber: "#ffb13d",
-          "amber-dim": "#8a5e1d",
-          text: "#e8ffef",
-          dim: "#6e8276",
+        chart: {
+          paper: "#f3e9d2",      // fond parchemin
+          "paper-dark": "#e8dab8", // panneaux légèrement plus sombres
+          ink: "#3b2f23",        // texte / lignes encre sépia
+          "ink-dim": "#8a7a5f",  // texte secondaire
+          line: "#c9b88f",       // bordures discrètes
+          blue: "#1f4e79",       // VATSIM (bleu carte aéro)
+          magenta: "#8b2f4b",    // IVAO (magenta carte aéro)
         },
       },
       fontFamily: {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
-        sans: ["var(--font-sans)", "ui-sans-serif", "sans-serif"],
+        serif: ["var(--font-serif)", "ui-serif", "serif"],
       },
     },
   },

@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Inter } from "next/font/google";
+import { IBM_Plex_Mono, Spectral } from "next/font/google";
 import "./globals.css";
 
-const jetbrainsMono = JetBrains_Mono({
+const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600"],
 });
 
-const inter = Inter({
+const spectral = Spectral({
   subsets: ["latin"],
-  variable: "--font-sans",
-  weight: ["400", "500", "600"],
+  variable: "--font-serif",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${jetbrainsMono.variable} ${inter.variable} antialiased`}>
+      <body className={`${plexMono.variable} ${spectral.variable} antialiased`}>
         {children}
       </body>
     </html>
