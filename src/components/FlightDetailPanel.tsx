@@ -109,12 +109,14 @@ export default function FlightDetailPanel({
     return () => clearInterval(interval);
   }, []);
 
-  // Recherche de la photo de l'appareil via notre route API (Wikimedia Commons)
+  // Recherche de la photo de l'appareil via notre route API (croise compagnie + type)
   useEffect(() => {
     setAircraftPhoto(null);
     if (!pilot.aircraftType) return;
     let cancelled = false;
-    fetch(`/api/aircraft-photo?type=${encodeURIComponent(pilot.aircraftType)}`)
+    const params = new URLSearchParams({ type: pilot.aircraftType });
+    if (airline?.icao) params.set("airline", airline.icao);
+    fetch(`/api/aircraft-photo?${params.toString()}`)
       .then((res) => (res.ok ? res.json() : { url: null }))
       .then((data) => {
         if (!cancelled) setAircraftPhoto(data.url ?? null);
@@ -125,7 +127,7 @@ export default function FlightDetailPanel({
     return () => {
       cancelled = true;
     };
-  }, [pilot.aircraftType]);
+  }, [pilot.aircraftType, airline?.icao]);
 
   useEffect(() => {
     setLogoFailed(false);
