@@ -135,11 +135,11 @@ export default function FlightDetailPanel({
 
   return (
     <div
-      className="absolute top-0 right-0 h-full w-[320px] max-w-[90vw] bg-scope-panel border-l z-[1100] flex flex-col font-mono text-scope-text overflow-y-auto"
+      className="absolute top-0 right-0 h-full w-[440px] max-w-[92vw] bg-scope-panel border-l z-[1100] flex flex-col font-mono text-scope-text overflow-y-auto"
       style={{ borderColor: accent }}
     >
       {/* Photo de l'appareil en bandeau, ou un fond neutre si pas trouvée */}
-      <div className="relative w-full h-[160px] bg-scope-bg border-b border-scope-line shrink-0">
+      <div className="relative w-full h-[220px] bg-scope-bg border-b border-scope-line shrink-0">
         {aircraftPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -154,76 +154,76 @@ export default function FlightDetailPanel({
         )}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-scope-bg/80 border border-scope-line text-scope-text hover:text-red-400 hover:border-red-400 transition-colors"
+          className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center bg-scope-bg/80 border border-scope-line text-scope-text text-lg hover:text-red-400 hover:border-red-400 transition-colors"
         >
           ✕
         </button>
-        <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 bg-scope-bg/80 backdrop-blur-sm flex items-center gap-2">
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-2.5 bg-scope-bg/80 backdrop-blur-sm flex items-center gap-3">
           {logoUrl && !logoFailed && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logoUrl}
               alt={airline?.icao ?? ""}
-              className="w-6 h-6 object-contain bg-white/90 rounded-sm p-0.5"
+              className="w-9 h-9 object-contain bg-white/90 rounded-sm p-1"
               onError={() => setLogoFailed(true)}
             />
           )}
-          <span className="font-bold tracking-wider text-sm" style={{ color: accent }}>
+          <span className="font-bold tracking-wider text-lg" style={{ color: accent }}>
             {pilot.callsign}
           </span>
         </div>
       </div>
 
-      <div className="p-4 flex flex-col gap-4 text-[12px]">
+      <div className="p-5 flex flex-col gap-5 text-[13px]">
         <div>
-          <div className="text-scope-dim text-[10px] tracking-widest mb-0.5">PILOTE</div>
-          <div>{pilot.pilotName ?? "Inconnu"}</div>
+          <div className="text-scope-dim text-[11px] tracking-widest mb-1">PILOTE</div>
+          <div className="text-[14px]">{pilot.pilotName ?? "Inconnu"}</div>
         </div>
 
         <div>
-          <div className="text-scope-dim text-[10px] tracking-widest mb-1">ROUTE</div>
-          <div className="flex items-center justify-between bg-scope-bg border border-scope-line px-3 py-2">
+          <div className="text-scope-dim text-[11px] tracking-widest mb-1.5">ROUTE</div>
+          <div className="flex items-center justify-between bg-scope-bg border border-scope-line px-4 py-3">
             <div className="text-center">
-              <div className="text-lg font-bold" style={{ color: accent }}>
+              <div className="text-2xl font-bold" style={{ color: accent }}>
                 {pilot.departure ?? "????"}
               </div>
             </div>
-            <div className="flex-1 flex flex-col items-center px-2">
-              <span className="text-scope-dim text-[10px]">{formatDuration(pilot.logonTime, now)}</span>
-              <div className="w-full h-px bg-scope-line my-1" />
-              <span className="text-scope-dim text-[10px]">EN VOL</span>
+            <div className="flex-1 flex flex-col items-center px-3">
+              <span className="text-scope-dim text-[11px]">{formatDuration(pilot.logonTime, now)}</span>
+              <div className="w-full h-px bg-scope-line my-1.5" />
+              <span className="text-scope-dim text-[11px]">EN VOL</span>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold" style={{ color: accent }}>
+              <div className="text-2xl font-bold" style={{ color: accent }}>
                 {pilot.arrival ?? "????"}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-scope-dim text-[10px] tracking-widest mb-0.5">ALTITUDE</div>
-            <div>FL{Math.round(pilot.altitude / 100)}</div>
+            <div className="text-scope-dim text-[11px] tracking-widest mb-1">ALTITUDE</div>
+            <div className="text-[14px]">FL{Math.round(pilot.altitude / 100)}</div>
           </div>
           <div>
-            <div className="text-scope-dim text-[10px] tracking-widest mb-0.5">VITESSE</div>
-            <div>{pilot.groundspeed} kt</div>
+            <div className="text-scope-dim text-[11px] tracking-widest mb-1">VITESSE</div>
+            <div className="text-[14px]">{pilot.groundspeed} kt</div>
           </div>
           <div>
-            <div className="text-scope-dim text-[10px] tracking-widest mb-0.5">APPAREIL</div>
-            <div>{pilot.aircraftType ?? "N/A"}</div>
+            <div className="text-scope-dim text-[11px] tracking-widest mb-1">APPAREIL</div>
+            <div className="text-[14px]">{pilot.aircraftType ?? "N/A"}</div>
           </div>
           <div>
-            <div className="text-scope-dim text-[10px] tracking-widest mb-0.5">RÉSEAU</div>
-            <div style={{ color: accent }}>{network.toUpperCase()}</div>
+            <div className="text-scope-dim text-[11px] tracking-widest mb-1">RÉSEAU</div>
+            <div className="text-[14px]" style={{ color: accent }}>{network.toUpperCase()}</div>
           </div>
         </div>
 
         {pilot.route && (
           <div>
-            <div className="text-scope-dim text-[10px] tracking-widest mb-0.5">PLAN DE VOL</div>
-            <div className="text-[11px] text-scope-dim leading-relaxed break-words">
+            <div className="text-scope-dim text-[11px] tracking-widest mb-1">PLAN DE VOL</div>
+            <div className="text-[12px] text-scope-dim leading-relaxed break-words">
               {pilot.route}
             </div>
           </div>
