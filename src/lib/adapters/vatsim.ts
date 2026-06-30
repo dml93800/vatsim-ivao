@@ -129,5 +129,5 @@ export async function fetchVatsimSnapshot(): Promise<NetworkSnapshot> {
     fetchedAt: new Date().toISOString(),
     pilots,
     atc,
-  };
+  }; 
 }
