@@ -7,9 +7,6 @@ const VATSIM_DATA_URL = "https://data.vatsim.net/v3/vatsim-data.json";
 // contrôleurs directement, seulement leur callsign (ex: "LFPG_TWR"). On
 // déduit donc la position depuis le code OACI préfixant le callsign.
 const AIRPORTS = airportsData as unknown as Record<string, [number, number]>;
-  string,
-  [number, number]
->;
 
 /**
  * Extrait un code OACI probable depuis un callsign ATC VATSIM/IVAO.
