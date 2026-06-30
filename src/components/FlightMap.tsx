@@ -12,6 +12,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Network, NetworkSnapshot, NormalizedPilot, NormalizedAtc } from "@/types/flight";
+import FlightDetailPanel from "./FlightDetailPanel";
 
 const REFRESH_INTERVAL_MS = 15_000; // calé sur la fréquence de mise à jour VATSIM
 
@@ -73,6 +74,7 @@ export default function FlightMap({ network }: { network: Network }) {
   const [snapshot, setSnapshot] = useState<NetworkSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPilot, setSelectedPilot] = useState<NormalizedPilot | null>(null);
   const accent = NETWORK_COLOR[network];
 
   const fetchData = useCallback(async () => {
@@ -85,6 +87,13 @@ export default function FlightMap({ network }: { network: Network }) {
       } else {
         setSnapshot(data);
         setError(null);
+        setSelectedPilot((prev) => {
+          if (!prev) return prev;
+          const updated = (data as NetworkSnapshot).pilots.find(
+            (p) => p.callsign === prev.callsign
+          );
+          return updated ?? null;
+        });
       }
     } catch {
       setError("Impossible de contacter le serveur");
@@ -95,6 +104,7 @@ export default function FlightMap({ network }: { network: Network }) {
 
   useEffect(() => {
     setLoading(true);
+    setSelectedPilot(null);
     fetchData();
     const interval = setInterval(fetchData, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
@@ -154,13 +164,26 @@ export default function FlightMap({ network }: { network: Network }) {
         />
 
         {snapshot?.pilots.map((pilot) => (
-          <PilotMarker key={pilot.callsign} pilot={pilot} network={network} />
+          <PilotMarker
+            key={pilot.callsign}
+            pilot={pilot}
+            network={network}
+            onSelect={setSelectedPilot}
+          />
         ))}
 
         {snapshot?.atc.map((atc) => (
           <AtcMarker key={atc.callsign} atc={atc} network={network} />
         ))}
       </MapContainer>
+
+      {selectedPilot && (
+        <FlightDetailPanel
+          pilot={selectedPilot}
+          network={network}
+          onClose={() => setSelectedPilot(null)}
+        />
+      )}
     </div>
   );
 }
@@ -168,46 +191,35 @@ export default function FlightMap({ network }: { network: Network }) {
 function PilotMarker({
   pilot,
   network,
+  onSelect,
 }: {
   pilot: NormalizedPilot;
   network: Network;
+  onSelect: (pilot: NormalizedPilot) => void;
 }) {
   const accent = NETWORK_COLOR[network];
   return (
     <Marker
       position={[pilot.latitude, pilot.longitude]}
       icon={planeIcon(pilot.heading, network)}
+      eventHandlers={{ click: () => onSelect(pilot) }}
     >
       <Popup>
         <div
-          className="font-mono text-[11px] bg-scope-panel border-l-4 px-3 py-2 w-[210px] text-scope-text"
+          className="font-mono text-[11px] bg-scope-panel border-l-4 px-3 py-2 w-[180px] text-scope-text"
           style={{ borderColor: accent }}
         >
-          <div className="flex justify-between items-baseline mb-1">
-            <span className="font-bold tracking-wider" style={{ color: accent }}>
-              {pilot.callsign}
-            </span>
-            <span className="text-scope-dim text-[10px]">{network.toUpperCase()}</span>
+          <div className="font-bold tracking-wider mb-1" style={{ color: accent }}>
+            {pilot.callsign}
           </div>
-          <div className="text-scope-dim text-[10px] mb-1.5 truncate">
-            {pilot.pilotName ?? "PILOTE INCONNU"}
-          </div>
-          <div className="flex justify-between border-t border-scope-line pt-1.5">
+          <div className="flex justify-between">
             <span>{pilot.departure ?? "????"}</span>
             <span className="text-scope-dim">→</span>
             <span>{pilot.arrival ?? "????"}</span>
           </div>
-          <div className="flex justify-between text-scope-dim mt-1">
-            <span>{pilot.aircraftType ?? "TYPE N/A"}</span>
-            <span>
-              FL{Math.round(pilot.altitude / 100)} · {pilot.groundspeed}KT
-            </span>
+          <div className="text-scope-dim text-[10px] mt-1">
+            Clic sur l&apos;avion pour le détail complet
           </div>
-          {pilot.route && (
-            <div className="text-scope-dim text-[10px] mt-1 truncate border-t border-scope-line pt-1">
-              {pilot.route}
-            </div>
-          )}
         </div>
       </Popup>
     </Marker>
