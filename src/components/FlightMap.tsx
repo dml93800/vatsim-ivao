@@ -11,19 +11,21 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Network, NetworkSnapshot, NormalizedPilot } from "@/types/flight";
+import { Network, NetworkSnapshot, NormalizedPilot, NormalizedAtc } from "@/types/flight";
 
-const REFRESH_INTERVAL_MS = 15_000; // calé sur la fréquence de mise à jour VATSIM
+const REFRESH_INTERVAL_MS = 15_000;
 
-// Icône avion en SVG, tournée via transform CSS selon le heading
+const NETWORK_COLOR: Record<Network, string> = {
+  vatsim: "#3cff8e",
+  ivao: "#ffb13d",
+};
+
 function planeIcon(heading: number, network: Network) {
-  const color = network === "vatsim" ? "#1d4ed8" : "#dc2626";
-  // Le SVG source pointe vers le NE (~45°) par défaut, d'où l'offset -45
-  // pour que heading=0 (nord) affiche bien le nez de l'avion vers le haut
+  const color = NETWORK_COLOR[network];
   const rotation = heading - 45;
   return L.divIcon({
     className: "plane-icon",
-    html: `<div style="transform: rotate(${rotation}deg); width: 22px; height: 22px;">
+    html: `<div style="transform: rotate(${rotation}deg); width: 20px; height: 20px; filter: drop-shadow(0 0 3px ${color}aa);">
       <svg viewBox="0 0 122.88 122.88" fill="${color}" xmlns="http://www.w3.org/2000/svg">
         <path d="M16.63,105.75c0.01-4.03,2.3-7.97,6.03-12.38L1.09,79.73c-1.36-0.59-1.33-1.42-0.54-2.4l4.57-3.9
           c0.83-0.51,1.71-0.73,2.66-0.47l26.62,4.5l22.18-24.02L4.8,18.41c-1.31-0.77-1.42-1.64-0.07-2.65l7.47-5.96l67.5,18.97L99.64,7.45
@@ -33,17 +35,20 @@ function planeIcon(heading: number, network: Network) {
           L16.63,105.75z"/>
       </svg>
     </div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
   });
 }
 
-const atcIcon = L.divIcon({
-  className: "atc-icon",
-  html: `<div style="width: 10px; height: 10px; background: #16a34a; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>`,
-  iconSize: [10, 10],
-  iconAnchor: [5, 5],
-});
+function atcIcon(network: Network) {
+  const color = NETWORK_COLOR[network];
+  return L.divIcon({
+    className: "atc-icon",
+    html: `<div style="width: 10px; height: 10px; background: ${color}; border: 1px solid #06100a; transform: rotate(45deg); box-shadow: 0 0 6px ${color}99;"></div>`,
+    iconSize: [10, 10],
+    iconAnchor: [5, 5],
+  });
+}
 
 function FitBoundsOnce() {
   const map = useMap();
@@ -57,6 +62,7 @@ export default function FlightMap({ network }: { network: Network }) {
   const [snapshot, setSnapshot] = useState<NetworkSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const accent = NETWORK_COLOR[network];
 
   const fetchData = useCallback(async () => {
     try {
@@ -84,23 +90,38 @@ export default function FlightMap({ network }: { network: Network }) {
   }, [fetchData]);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full bg-scope-bg radar-grid">
       {loading && (
-        <div className="absolute top-3 left-3 z-[1000] bg-white/90 px-3 py-1.5 rounded-md text-sm shadow">
-          Chargement des données {network.toUpperCase()}...
+        <div
+          className="absolute top-3 left-3 z-[1000] bg-scope-panel/90 border px-3 py-1.5 font-mono text-xs tracking-widest"
+          style={{ borderColor: accent, color: accent }}
+        >
+          SYNC {network.toUpperCase()}...
         </div>
       )}
       {error && (
-        <div className="absolute top-3 left-3 z-[1000] bg-red-50 text-red-700 px-3 py-1.5 rounded-md text-sm shadow border border-red-200">
-          {error}
+        <div className="absolute top-3 left-3 z-[1000] bg-scope-panel/95 text-red-400 px-3 py-1.5 font-mono text-xs border border-red-500/50 tracking-widest">
+          ⚠ {error}
         </div>
       )}
       {snapshot && !error && (
-        <div className="absolute top-3 left-3 z-[1000] bg-white/90 px-3 py-1.5 rounded-md text-sm shadow flex gap-4">
-          <span>✈️ {snapshot.pilots.length} vols</span>
-          <span>🎙️ {snapshot.atc.length} ATC</span>
+        <div
+          className="absolute top-3 left-3 z-[1000] bg-scope-panel/90 border px-3 py-1.5 font-mono text-xs tracking-widest flex gap-5"
+          style={{ borderColor: accent }}
+        >
+          <span style={{ color: accent }}>
+            ✈ {String(snapshot.pilots.length).padStart(4, "0")} VOLS
+          </span>
+          <span className="text-scope-dim">
+            ◆ {String(snapshot.atc.length).padStart(3, "0")} ATC
+          </span>
         </div>
       )}
+
+      <div
+        className="radar-sweep"
+        style={{ background: `conic-gradient(from 0deg, ${accent}1a 0deg, ${accent}00 25deg, ${accent}00 360deg)` }}
+      />
 
       <MapContainer
         center={[20, 10]}
@@ -108,10 +129,11 @@ export default function FlightMap({ network }: { network: Network }) {
         minZoom={2}
         worldCopyJump
         className="w-full h-full"
-        style={{ background: "#0a1525" }}
+        style={{ background: "transparent" }}
       >
         <FitBoundsOnce />
         <TileLayer
+          className="scope-tiles"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
@@ -121,30 +143,7 @@ export default function FlightMap({ network }: { network: Network }) {
         ))}
 
         {snapshot?.atc.map((atc) => (
-          <div key={atc.callsign}>
-            <Marker position={[atc.latitude, atc.longitude]} icon={atcIcon}>
-              <Popup>
-                <div className="text-sm">
-                  <strong>{atc.callsign}</strong> ({atc.facilityType})
-                  <br />
-                  {atc.controllerName ?? "—"}
-                  <br />
-                  Freq: {atc.frequency ?? "—"}
-                </div>
-              </Popup>
-            </Marker>
-            {atc.visualRange ? (
-              <Circle
-                center={[atc.latitude, atc.longitude]}
-                radius={atc.visualRange * 1852} // nm -> mètres
-                pathOptions={{
-                  color: "#16a34a",
-                  weight: 1,
-                  fillOpacity: 0.04,
-                }}
-              />
-            ) : null}
-          </div>
+          <AtcMarker key={atc.callsign} atc={atc} network={network} />
         ))}
       </MapContainer>
     </div>
@@ -158,29 +157,86 @@ function PilotMarker({
   pilot: NormalizedPilot;
   network: Network;
 }) {
+  const accent = NETWORK_COLOR[network];
   return (
     <Marker
       position={[pilot.latitude, pilot.longitude]}
       icon={planeIcon(pilot.heading, network)}
     >
       <Popup>
-        <div className="text-sm space-y-0.5">
-          <div className="font-bold">{pilot.callsign}</div>
-          <div>{pilot.pilotName ?? "—"}</div>
-          <div>
-            {pilot.departure ?? "????"} → {pilot.arrival ?? "????"}
+        <div
+          className="font-mono text-[11px] bg-scope-panel border-l-4 px-3 py-2 w-[210px] text-scope-text"
+          style={{ borderColor: accent }}
+        >
+          <div className="flex justify-between items-baseline mb-1">
+            <span className="font-bold tracking-wider" style={{ color: accent }}>
+              {pilot.callsign}
+            </span>
+            <span className="text-scope-dim text-[10px]">{network.toUpperCase()}</span>
           </div>
-          <div>
-            {pilot.aircraftType ?? "Type inconnu"} · FL
-            {Math.round(pilot.altitude / 100)} · {pilot.groundspeed} kt
+          <div className="text-scope-dim text-[10px] mb-1.5 truncate">
+            {pilot.pilotName ?? "PILOTE INCONNU"}
+          </div>
+          <div className="flex justify-between border-t border-scope-line pt-1.5">
+            <span>{pilot.departure ?? "????"}</span>
+            <span className="text-scope-dim">→</span>
+            <span>{pilot.arrival ?? "????"}</span>
+          </div>
+          <div className="flex justify-between text-scope-dim mt-1">
+            <span>{pilot.aircraftType ?? "TYPE N/A"}</span>
+            <span>
+              FL{Math.round(pilot.altitude / 100)} · {pilot.groundspeed}KT
+            </span>
           </div>
           {pilot.route && (
-            <div className="text-xs text-gray-500 max-w-[220px] truncate">
+            <div className="text-scope-dim text-[10px] mt-1 truncate border-t border-scope-line pt-1">
               {pilot.route}
             </div>
           )}
         </div>
       </Popup>
     </Marker>
+  );
+}
+
+function AtcMarker({ atc, network }: { atc: NormalizedAtc; network: Network }) {
+  const accent = NETWORK_COLOR[network];
+  return (
+    <>
+      <Marker position={[atc.latitude, atc.longitude]} icon={atcIcon(network)}>
+        <Popup>
+          <div
+            className="font-mono text-[11px] bg-scope-panel border-l-4 px-3 py-2 w-[190px] text-scope-text"
+            style={{ borderColor: accent }}
+          >
+            <div className="flex justify-between items-baseline mb-1">
+              <span className="font-bold tracking-wider" style={{ color: accent }}>
+                {atc.callsign}
+              </span>
+              <span className="text-scope-dim text-[10px]">{atc.facilityType}</span>
+            </div>
+            <div className="text-scope-dim text-[10px] truncate">
+              {atc.controllerName ?? "—"}
+            </div>
+            <div className="border-t border-scope-line pt-1 mt-1">
+              FREQ {atc.frequency ?? "—"}
+            </div>
+          </div>
+        </Popup>
+      </Marker>
+      {atc.visualRange ? (
+        <Circle
+          center={[atc.latitude, atc.longitude]}
+          radius={atc.visualRange * 1852}
+          pathOptions={{
+            color: accent,
+            weight: 1,
+            opacity: 0.4,
+            dashArray: "4 6",
+            fillOpacity: 0.03,
+          }}
+        />
+      ) : null}
+    </>
   );
 }

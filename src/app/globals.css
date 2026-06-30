@@ -3,25 +3,67 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #060a08;
+  --foreground: #e8ffef;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Grille radar en fond : cercles concentriques façon scope ATC */
+.radar-grid {
+  background-image:
+    repeating-radial-gradient(
+      circle at center,
+      rgba(60, 255, 142, 0.05) 0px,
+      rgba(60, 255, 142, 0.05) 1px,
+      transparent 1px,
+      transparent 80px
+    );
+}
+
+/* Balayage radar : un secteur lumineux qui tourne lentement, très discret */
+@keyframes sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.radar-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 450;
+  animation: sweep 8s linear infinite;
+  mix-blend-mode: screen;
+}
+
+/* Teinte les tuiles de carte vers le vert phosphore plutôt que le gris neutre */
+.scope-tiles {
+  filter: brightness(0.55) saturate(0.4) hue-rotate(60deg) contrast(1.15);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.live-dot {
+  animation: blink 2s ease-in-out infinite;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+}
+
+.leaflet-container {
+  font-family: var(--font-mono), ui-monospace, monospace;
 }
