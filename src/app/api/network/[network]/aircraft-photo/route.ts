@@ -64,11 +64,13 @@ export async function GET(req: NextRequest) {
     const apiUrl = new URL("https://commons.wikimedia.org/w/api.php");
     apiUrl.searchParams.set("action", "query");
     apiUrl.searchParams.set("generator", "search");
-    apiUrl.searchParams.set("gsrsearch", `intitle:"${searchTerm}" filetype:bitmap`);
-    apiUrl.searchParams.set("gsrlimit", "1");
+    // Recherche large (titre + description + catégories), pas une correspondance
+    // exacte du titre : beaucoup plus de chances de tomber sur une vraie photo
+    apiUrl.searchParams.set("gsrsearch", `${searchTerm} aircraft filetype:bitmap`);
+    apiUrl.searchParams.set("gsrlimit", "5");
     apiUrl.searchParams.set("gsrnamespace", "6"); // namespace Fichier:
     apiUrl.searchParams.set("prop", "imageinfo");
-    apiUrl.searchParams.set("iiprop", "url");
+    apiUrl.searchParams.set("iiprop", "url|mime");
     apiUrl.searchParams.set("iiurlwidth", "500");
     apiUrl.searchParams.set("format", "json");
     apiUrl.searchParams.set("origin", "*");
@@ -82,11 +84,18 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json();
     const pages = data?.query?.pages as
-      | Record<string, { imageinfo?: { url?: string; thumburl?: string }[] }>
+      | Record<string, { imageinfo?: { url?: string; thumburl?: string; mime?: string }[] }>
       | undefined;
-    const firstPage = pages ? Object.values(pages)[0] : null;
+
+    // On exclut les SVG (logos/diagrammes) pour ne garder que de vraies photos
+    const candidates = pages
+      ? Object.values(pages).filter(
+          (p) => p.imageinfo?.[0]?.mime && p.imageinfo[0].mime !== "image/svg+xml"
+        )
+      : [];
+
     const url: string | null =
-      firstPage?.imageinfo?.[0]?.thumburl ?? firstPage?.imageinfo?.[0]?.url ?? null;
+      candidates[0]?.imageinfo?.[0]?.thumburl ?? candidates[0]?.imageinfo?.[0]?.url ?? null;
 
     cache.set(type, url);
 

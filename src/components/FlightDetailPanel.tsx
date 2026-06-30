@@ -8,10 +8,72 @@ const NETWORK_COLOR: Record<Network, string> = {
   ivao: "#ffb13d",
 };
 
-// Déduit le code OACI de la compagnie depuis le callsign (ex: "AFR1234" -> "AFR")
-function airlineIcaoFromCallsign(callsign: string): string | null {
+// pics.avs.io attend le code IATA (2 lettres), alors que le callsign VATSIM/IVAO
+// donne le code ICAO (3 lettres). Table de correspondance pour les compagnies les
+// plus fréquentes sur le réseau ; complétable au besoin.
+const ICAO_TO_IATA: Record<string, string> = {
+  AFR: "AF", // Air France
+  BAW: "BA", // British Airways
+  DLH: "LH", // Lufthansa
+  KLM: "KL", // KLM
+  EZY: "U2", // easyJet
+  RYR: "FR", // Ryanair
+  VLG: "VY", // Vueling
+  IBE: "IB", // Iberia
+  TAP: "TP", // TAP Portugal
+  SWR: "LX", // Swiss
+  AUA: "OS", // Austrian
+  THY: "TK", // Turkish Airlines
+  UAE: "EK", // Emirates
+  QTR: "QR", // Qatar Airways
+  ETD: "EY", // Etihad
+  SVA: "SV", // Saudia
+  AAL: "AA", // American Airlines
+  UAL: "UA", // United
+  DAL: "DL", // Delta
+  SWA: "WN", // Southwest
+  JBU: "B6", // JetBlue
+  ACA: "AC", // Air Canada
+  WJA: "WS", // WestJet
+  QFA: "QF", // Qantas
+  ANZ: "NZ", // Air New Zealand
+  JAL: "JL", // Japan Airlines
+  ANA: "NH", // All Nippon Airways
+  CES: "MU", // China Eastern
+  CCA: "CA", // Air China
+  CSN: "CZ", // China Southern
+  SIA: "SQ", // Singapore Airlines
+  CPA: "CX", // Cathay Pacific
+  KAL: "KE", // Korean Air
+  THA: "TG", // Thai Airways
+  GIA: "GA", // Garuda Indonesia
+  AIC: "AI", // Air India
+  ELY: "LY", // El Al
+  MSR: "MS", // EgyptAir
+  RAM: "AT", // Royal Air Maroc
+  DAH: "AH", // Air Algérie
+  TUI: "X3", // TUI fly
+  NAX: "DY", // Norwegian
+  FIN: "AY", // Finnair
+  SAS: "SK", // SAS
+  ICE: "FI", // Icelandair
+  AZA: "AZ", // ITA Airways
+  WZZ: "W6", // Wizz Air
+  PGT: "PC", // Pegasus
+  AFL: "SU", // Aeroflot
+  LAN: "LA", // LATAM
+  AVA: "AV", // Avianca
+  GLO: "G3", // Gol
+  AZU: "AD", // Azul
+};
+
+// Déduit le code ICAO compagnie depuis le callsign (ex: "AFR1234" -> "AFR"),
+// puis le convertit en IATA via la table ci-dessus
+function airlineLogoCode(callsign: string): { icao: string; iata: string | null } | null {
   const match = callsign.match(/^[A-Za-z]{2,4}/);
-  return match ? match[0].toUpperCase() : null;
+  if (!match) return null;
+  const icao = match[0].toUpperCase();
+  return { icao, iata: ICAO_TO_IATA[icao] ?? null };
 }
 
 function formatDuration(logonTime: string | null, now: number): string {
@@ -38,8 +100,8 @@ export default function FlightDetailPanel({
   const [aircraftPhoto, setAircraftPhoto] = useState<string | null>(null);
   const [logoFailed, setLogoFailed] = useState(false);
 
-  const airlineIcao = airlineIcaoFromCallsign(pilot.callsign);
-  const logoUrl = airlineIcao ? `https://pics.avs.io/200/200/${airlineIcao}.png` : null;
+  const airline = airlineLogoCode(pilot.callsign);
+  const logoUrl = airline?.iata ? `https://pics.avs.io/200/200/${airline.iata}.png` : null;
 
   // Durée de vol mise à jour chaque minute pour rester live
   useEffect(() => {
@@ -99,7 +161,7 @@ export default function FlightDetailPanel({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logoUrl}
-              alt={airlineIcao ?? ""}
+              alt={airline?.icao ?? ""}
               className="w-6 h-6 object-contain bg-white/90 rounded-sm p-0.5"
               onError={() => setLogoFailed(true)}
             />
