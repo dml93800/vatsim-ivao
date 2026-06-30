@@ -13,15 +13,18 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Network, NetworkSnapshot, NormalizedPilot, NormalizedAtc } from "@/types/flight";
 
-const REFRESH_INTERVAL_MS = 15_000;
+const REFRESH_INTERVAL_MS = 15_000; // calé sur la fréquence de mise à jour VATSIM
 
 const NETWORK_COLOR: Record<Network, string> = {
-  vatsim: "#3cff8e",
-  ivao: "#ffb13d",
+  vatsim: "#3cff8e", // vert phosphore
+  ivao: "#ffb13d", // ambre
 };
 
+// Icône avion en SVG, tournée via transform CSS selon le heading
 function planeIcon(heading: number, network: Network) {
   const color = NETWORK_COLOR[network];
+  // Le SVG source pointe vers le NE (~45°) par défaut, d'où l'offset -45
+  // pour que heading=0 (nord) affiche bien le nez de l'avion vers le haut
   const rotation = heading - 45;
   return L.divIcon({
     className: "plane-icon",
@@ -40,13 +43,21 @@ function planeIcon(heading: number, network: Network) {
   });
 }
 
+// Position ATC : icône tour de contrôle, ancrée par sa base
 function atcIcon(network: Network) {
   const color = NETWORK_COLOR[network];
   return L.divIcon({
     className: "atc-icon",
-    html: `<div style="width: 13px; height: 13px; background: ${color}; border: 2px solid #ffffff; transform: rotate(45deg); box-shadow: 0 0 8px 2px ${color}cc;"></div>`,
-    iconSize: [13, 13],
-    iconAnchor: [6, 6],
+    html: `<div style="width: 18px; height: 18px; filter: drop-shadow(0 0 4px ${color}cc);">
+      <svg viewBox="0 0 485 485" fill="${color}" xmlns="http://www.w3.org/2000/svg">
+        <path d="M450.463,211.887h-94.811l23.411-115.613H257.5V0h-30v96.274H105.938l23.411,115.613H34.537L64.022,357.5h121.925V485h30
+          V357.5h53.105V485h30V357.5h121.925L450.463,211.887z M257.5,241.887h63.215l-8.668,85.613H257.5V241.887z M227.5,327.5h-54.547
+          l-8.668-85.613H227.5V327.5z M142.621,126.274h199.758l-17.335,85.613H159.956L142.621,126.274z M71.221,241.887h62.911
+          l8.668,85.613H88.557L71.221,241.887z M396.443,327.5h-54.242l8.668-85.613h62.911L396.443,327.5z"/>
+      </svg>
+    </div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 18],
   });
 }
 
@@ -231,7 +242,7 @@ function AtcMarker({ atc, network }: { atc: NormalizedAtc; network: Network }) {
       {atc.visualRange ? (
         <Circle
           center={[atc.latitude, atc.longitude]}
-          radius={atc.visualRange * 1852}
+          radius={atc.visualRange * 1852} // nm -> mètres
           pathOptions={{
             color: accent,
             weight: 1,
