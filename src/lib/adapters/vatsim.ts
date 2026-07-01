@@ -3,10 +3,7 @@ import airportsData from "@/data/airports.json";
 
 const VATSIM_DATA_URL = "https://data.vatsim.net/v3/vatsim-data.json";
 
-const AIRPORTS: Record<string, [number, number]> = airportsData as unknown as Record
-  string,
-  [number, number]
->;
+const AIRPORTS: Record<string, [number, number]> = airportsData as unknown as Record<string, [number, number]>;
 
 function resolveAtcPosition(callsign: string): [number, number] | null {
   const prefix = callsign.split("_")[0];
@@ -82,7 +79,7 @@ export async function fetchVatsimSnapshot(): Promise<NetworkSnapshot> {
     .filter((p) => p.latitude !== 0 || p.longitude !== 0)
     .map((p) => ({
       callsign: p.callsign,
-      network: "vatsim",
+      network: "vatsim" as const,
       latitude: p.latitude,
       longitude: p.longitude,
       heading: p.heading,
