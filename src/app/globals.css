@@ -3,25 +3,49 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #0b1220;
+  --foreground: #e8eef7;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Texture papier + grille de coordonnées façon carte de navigation aéronautique */
+.chart-grid {
+  background-image:
+    linear-gradient(rgba(59, 47, 35, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 47, 35, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.live-dot {
+  animation: blink 2s ease-in-out infinite;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+}
+
+.leaflet-container {
+  font-family: var(--font-mono), ui-sans-serif, sans-serif;
+  background: #0b1220;
+}
+
+.plane-icon svg,
+.atc-icon svg {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
 }

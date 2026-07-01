@@ -6,10 +6,7 @@ const VATSIM_DATA_URL = "https://data.vatsim.net/v3/vatsim-data.json";
 // ICAO -> [lat, lon]. Le flux VATSIM v3 ne fournit PAS les coordonnées des
 // contrôleurs directement, seulement leur callsign (ex: "LFPG_TWR"). On
 // déduit donc la position depuis le code OACI préfixant le callsign.
-const AIRPORTS: Record<string, [number, number]> = airportsData as unknown as Record<
-  string,
-  [number, number]
->;
+const AIRPORTS = airportsData as unknown as Record<string, [number, number]>;
 
 /**
  * Extrait un code OACI probable depuis un callsign ATC VATSIM/IVAO.
@@ -55,6 +52,7 @@ interface VatsimRawPilot {
   groundspeed: number;
   heading: number;
   transponder: string;
+  logon_time: string;
   flight_plan?: {
     aircraft_short?: string;
     departure?: string;
@@ -104,6 +102,7 @@ export async function fetchVatsimSnapshot(): Promise<NetworkSnapshot> {
       route: p.flight_plan?.route ?? null,
       pilotName: p.name ?? null,
       transponder: p.transponder ?? null,
+      logonTime: p.logon_time ?? null,
     }));
 
   const atc = raw.controllers
@@ -130,5 +129,5 @@ export async function fetchVatsimSnapshot(): Promise<NetworkSnapshot> {
     fetchedAt: new Date().toISOString(),
     pilots,
     atc,
-  };
+  }; 
 }
