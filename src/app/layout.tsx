@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Spectral } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500", "600"],
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist-sans",
+  weight: "100 900",
 });
-
-const spectral = Spectral({
-  subsets: ["latin"],
-  variable: "--font-serif",
-  weight: ["400", "500", "600", "700"],
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${plexMono.variable} ${spectral.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         {children}
       </body>
     </html>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -11,77 +11,31 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Network, NetworkSnapshot, NormalizedPilot, NormalizedAtc } from "@/types/flight";
-import FlightDetailPanel from "./FlightDetailPanel";
+import { Network, NetworkSnapshot, NormalizedPilot } from "@/types/flight";
 
 const REFRESH_INTERVAL_MS = 15_000; // calé sur la fréquence de mise à jour VATSIM
-const MAX_EXTRAPOLATION_SEC = 25; // sécurité si un refresh tarde à arriver
-
-// Calcule la position d'un avion après un temps écoulé, à partir de sa
-// dernière position connue, son cap et sa vitesse sol (méthode du point
-// estimé / "dead reckoning", utilisée en navigation réelle)
-function destinationPoint(
-  lat: number,
-  lon: number,
-  bearingDeg: number,
-  distanceKm: number
-): [number, number] {
-  const R = 6371; // rayon terrestre en km
-  const δ = distanceKm / R;
-  const θ = (bearingDeg * Math.PI) / 180;
-  const φ1 = (lat * Math.PI) / 180;
-  const λ1 = (lon * Math.PI) / 180;
-  const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
-  const λ2 =
-    λ1 + Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1), Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
-  return [(φ2 * 180) / Math.PI, (((λ2 * 180) / Math.PI + 540) % 360) - 180];
-}
-
-const NETWORK_COLOR: Record<Network, string> = {
-  vatsim: "#1f4e79", // bleu carte aéronautique
-  ivao: "#8b2f4b", // magenta carte aéronautique
-};
 
 // Icône avion en SVG, tournée via transform CSS selon le heading
 function planeIcon(heading: number, network: Network) {
-  const color = NETWORK_COLOR[network];
-  // Le SVG source pointe vers le NE (~45°) par défaut, d'où l'offset -45
-  // pour que heading=0 (nord) affiche bien le nez de l'avion vers le haut
-  const rotation = heading - 45;
+  const color = network === "vatsim" ? "#1d4ed8" : "#dc2626";
   return L.divIcon({
     className: "plane-icon",
-    html: `<div style="transform: rotate(${rotation}deg); width: 18px; height: 18px;">
-      <svg viewBox="0 0 122.88 122.88" fill="${color}" stroke="#f3e9d2" stroke-width="4" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16.63,105.75c0.01-4.03,2.3-7.97,6.03-12.38L1.09,79.73c-1.36-0.59-1.33-1.42-0.54-2.4l4.57-3.9
-          c0.83-0.51,1.71-0.73,2.66-0.47l26.62,4.5l22.18-24.02L4.8,18.41c-1.31-0.77-1.42-1.64-0.07-2.65l7.47-5.96l67.5,18.97L99.64,7.45
-          c6.69-5.79,13.19-8.38,18.18-7.15c2.75,0.68,3.72,1.5,4.57,4.08c1.65,5.06-0.91,11.86-6.96,18.86L94.11,43.18l18.97,67.5
-          l-5.96,7.47c-1.01,1.34-1.88,1.23-2.65-0.07L69.43,66.31L45.41,88.48l4.5,26.62c0.26,0.94,0.05,1.82-0.47,2.66l-3.9,4.57
-          c-0.97,0.79-1.81,0.82-2.4-0.54l-13.64-21.57c-4.43,3.74-8.37,6.03-12.42,6.03C16.71,106.24,16.63,106.11,16.63,105.75
-          L16.63,105.75z"/>
+    html: `<div style="transform: rotate(${heading}deg); width: 22px; height: 22px;">
+      <svg viewBox="0 0 24 24" fill="${color}" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L9 9 2 12l7 1 1 7 2-6 2 6 1-7 7-1-7-3z"/>
       </svg>
     </div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
   });
 }
 
-// Position ATC : icône tour de contrôle, ancrée par sa base
-function atcIcon(network: Network) {
-  const color = NETWORK_COLOR[network];
-  return L.divIcon({
-    className: "atc-icon",
-    html: `<div style="width: 16px; height: 16px;">
-      <svg viewBox="0 0 485 485" fill="${color}" stroke="#f3e9d2" stroke-width="10" xmlns="http://www.w3.org/2000/svg">
-        <path d="M450.463,211.887h-94.811l23.411-115.613H257.5V0h-30v96.274H105.938l23.411,115.613H34.537L64.022,357.5h121.925V485h30
-          V357.5h53.105V485h30V357.5h121.925L450.463,211.887z M257.5,241.887h63.215l-8.668,85.613H257.5V241.887z M227.5,327.5h-54.547
-          l-8.668-85.613H227.5V327.5z M142.621,126.274h199.758l-17.335,85.613H159.956L142.621,126.274z M71.221,241.887h62.911
-          l8.668,85.613H88.557L71.221,241.887z M396.443,327.5h-54.242l8.668-85.613h62.911L396.443,327.5z"/>
-      </svg>
-    </div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 16],
-  });
-}
+const atcIcon = L.divIcon({
+  className: "atc-icon",
+  html: `<div style="width: 10px; height: 10px; background: #16a34a; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>`,
+  iconSize: [10, 10],
+  iconAnchor: [5, 5],
+});
 
 function FitBoundsOnce() {
   const map = useMap();
@@ -95,8 +49,6 @@ export default function FlightMap({ network }: { network: Network }) {
   const [snapshot, setSnapshot] = useState<NetworkSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPilot, setSelectedPilot] = useState<NormalizedPilot | null>(null);
-  const accent = NETWORK_COLOR[network];
 
   const fetchData = useCallback(async () => {
     try {
@@ -108,13 +60,6 @@ export default function FlightMap({ network }: { network: Network }) {
       } else {
         setSnapshot(data);
         setError(null);
-        setSelectedPilot((prev) => {
-          if (!prev) return prev;
-          const updated = (data as NetworkSnapshot).pilots.find(
-            (p) => p.callsign === prev.callsign
-          );
-          return updated ?? null;
-        });
       }
     } catch {
       setError("Impossible de contacter le serveur");
@@ -125,38 +70,27 @@ export default function FlightMap({ network }: { network: Network }) {
 
   useEffect(() => {
     setLoading(true);
-    setSelectedPilot(null);
     fetchData();
     const interval = setInterval(fetchData, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [fetchData]);
 
   return (
-    <div className="relative w-full h-full bg-chart-paper chart-grid">
+    <div className="relative w-full h-full">
       {loading && (
-        <div
-          className="absolute top-3 left-3 z-[1000] bg-chart-paper-dark border px-3 py-1.5 font-mono text-xs tracking-widest"
-          style={{ borderColor: accent, color: accent }}
-        >
-          Synchronisation {network.toUpperCase()}...
+        <div className="absolute top-3 left-3 z-[1000] bg-white/90 px-3 py-1.5 rounded-md text-sm shadow">
+          Chargement des données {network.toUpperCase()}...
         </div>
       )}
       {error && (
-        <div className="absolute top-3 left-3 z-[1000] bg-chart-paper-dark text-red-700 px-3 py-1.5 font-mono text-xs border border-red-700/50 tracking-widest">
-          ⚠ {error}
+        <div className="absolute top-3 left-3 z-[1000] bg-red-50 text-red-700 px-3 py-1.5 rounded-md text-sm shadow border border-red-200">
+          {error}
         </div>
       )}
       {snapshot && !error && (
-        <div
-          className="absolute top-3 left-3 z-[1000] bg-chart-paper-dark border px-3 py-1.5 font-mono text-xs tracking-widest flex gap-5"
-          style={{ borderColor: accent }}
-        >
-          <span style={{ color: accent }}>
-            ✈ {String(snapshot.pilots.length).padStart(4, "0")} VOLS
-          </span>
-          <span className="text-chart-ink-dim">
-            ◆ {String(snapshot.atc.length).padStart(3, "0")} ATC
-          </span>
+        <div className="absolute top-3 left-3 z-[1000] bg-white/90 px-3 py-1.5 rounded-md text-sm shadow flex gap-4">
+          <span>✈️ {snapshot.pilots.length} vols</span>
+          <span>🎙️ {snapshot.atc.length} ATC</span>
         </div>
       )}
 
@@ -166,36 +100,45 @@ export default function FlightMap({ network }: { network: Network }) {
         minZoom={2}
         worldCopyJump
         className="w-full h-full"
-        style={{ background: "#f3e9d2" }}
+        style={{ background: "#0a1525" }}
       >
         <FitBoundsOnce />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
 
         {snapshot?.pilots.map((pilot) => (
-          <PilotMarker
-            key={pilot.callsign}
-            pilot={pilot}
-            network={network}
-            onSelect={setSelectedPilot}
-            fetchedAtMs={Date.parse(snapshot.fetchedAt)}
-          />
+          <PilotMarker key={pilot.callsign} pilot={pilot} network={network} />
         ))}
 
         {snapshot?.atc.map((atc) => (
-          <AtcMarker key={atc.callsign} atc={atc} network={network} />
+          <div key={atc.callsign}>
+            <Marker position={[atc.latitude, atc.longitude]} icon={atcIcon}>
+              <Popup>
+                <div className="text-sm">
+                  <strong>{atc.callsign}</strong> ({atc.facilityType})
+                  <br />
+                  {atc.controllerName ?? "—"}
+                  <br />
+                  Freq: {atc.frequency ?? "—"}
+                </div>
+              </Popup>
+            </Marker>
+            {atc.visualRange ? (
+              <Circle
+                center={[atc.latitude, atc.longitude]}
+                radius={atc.visualRange * 1852} // nm -> mètres
+                pathOptions={{
+                  color: "#16a34a",
+                  weight: 1,
+                  fillOpacity: 0.04,
+                }}
+              />
+            ) : null}
+          </div>
         ))}
       </MapContainer>
-
-      {selectedPilot && (
-        <FlightDetailPanel
-          pilot={selectedPilot}
-          network={network}
-          onClose={() => setSelectedPilot(null)}
-        />
-      )}
     </div>
   );
 }
@@ -203,109 +146,33 @@ export default function FlightMap({ network }: { network: Network }) {
 function PilotMarker({
   pilot,
   network,
-  onSelect,
-  fetchedAtMs,
 }: {
   pilot: NormalizedPilot;
   network: Network;
-  onSelect: (pilot: NormalizedPilot) => void;
-  fetchedAtMs: number;
 }) {
-  const accent = NETWORK_COLOR[network];
-  const markerRef = useRef<L.Marker | null>(null);
-
-  // Fait avancer l'avion en continu entre deux refresh de données, en
-  // extrapolant sa position à partir de son cap et sa vitesse sol. Mis à
-  // jour directement sur l'instance Leaflet (pas via setState React) pour
-  // rester fluide même avec des centaines d'avions affichés.
-  useEffect(() => {
-    const animate = () => {
-      const elapsedSec = Math.min(
-        (Date.now() - fetchedAtMs) / 1000,
-        MAX_EXTRAPOLATION_SEC
-      );
-      const speedKmh = pilot.groundspeed * 1.852;
-      const distanceKm = speedKmh * (elapsedSec / 3600);
-      const [lat, lon] = destinationPoint(
-        pilot.latitude,
-        pilot.longitude,
-        pilot.heading,
-        distanceKm
-      );
-      markerRef.current?.setLatLng([lat, lon]);
-    };
-    animate();
-    const interval = setInterval(animate, 200);
-    return () => clearInterval(interval);
-  }, [pilot.latitude, pilot.longitude, pilot.heading, pilot.groundspeed, fetchedAtMs]);
-
   return (
     <Marker
-      ref={markerRef}
       position={[pilot.latitude, pilot.longitude]}
       icon={planeIcon(pilot.heading, network)}
-      eventHandlers={{ click: () => onSelect(pilot) }}
     >
       <Popup>
-        <div
-          className="font-mono text-[11px] bg-chart-paper-dark border-l-4 px-3 py-2 w-[180px] text-chart-ink"
-          style={{ borderColor: accent }}
-        >
-          <div className="font-bold tracking-wider mb-1" style={{ color: accent }}>
-            {pilot.callsign}
+        <div className="text-sm space-y-0.5">
+          <div className="font-bold">{pilot.callsign}</div>
+          <div>{pilot.pilotName ?? "—"}</div>
+          <div>
+            {pilot.departure ?? "????"} → {pilot.arrival ?? "????"}
           </div>
-          <div className="flex justify-between">
-            <span>{pilot.departure ?? "????"}</span>
-            <span className="text-chart-ink-dim">→</span>
-            <span>{pilot.arrival ?? "????"}</span>
+          <div>
+            {pilot.aircraftType ?? "Type inconnu"} · FL
+            {Math.round(pilot.altitude / 100)} · {pilot.groundspeed} kt
           </div>
-          <div className="text-chart-ink-dim text-[10px] mt-1">
-            Clic sur l&apos;avion pour le détail complet
-          </div>
+          {pilot.route && (
+            <div className="text-xs text-gray-500 max-w-[220px] truncate">
+              {pilot.route}
+            </div>
+          )}
         </div>
       </Popup>
     </Marker>
-  );
-}
-
-function AtcMarker({ atc, network }: { atc: NormalizedAtc; network: Network }) {
-  const accent = NETWORK_COLOR[network];
-  return (
-    <>
-      <Marker position={[atc.latitude, atc.longitude]} icon={atcIcon(network)}>
-        <Popup>
-          <div
-            className="font-mono text-[11px] bg-chart-paper-dark border-l-4 px-3 py-2 w-[190px] text-chart-ink"
-            style={{ borderColor: accent }}
-          >
-            <div className="flex justify-between items-baseline mb-1">
-              <span className="font-bold tracking-wider" style={{ color: accent }}>
-                {atc.callsign}
-              </span>
-              <span className="text-chart-ink-dim text-[10px]">{atc.facilityType}</span>
-            </div>
-            <div className="text-chart-ink-dim text-[10px] truncate">
-              {atc.controllerName ?? "—"}
-            </div>
-            <div className="border-t border-chart-line pt-1 mt-1">
-              FREQ {atc.frequency ?? "—"}
-            </div>
-          </div>
-        </Popup>
-      </Marker>
-      {atc.visualRange ? (
-        <Circle
-          center={[atc.latitude, atc.longitude]}
-          radius={atc.visualRange * 1852} // nm -> mètres
-          pathOptions={{
-            color: accent,
-            weight: 1,
-            opacity: 0.5,
-            dashArray: "4 6",
-            fillOpacity: 0.04,
-          }}
-        />
-      ) : null}
-    </>
   );
 }
