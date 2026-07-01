@@ -16,6 +16,7 @@ export interface NormalizedPilot {
   route: string | null;
   pilotName: string | null;
   transponder: string | null;
+  logonTime: string | null; // heure de connexion ISO
 }
 
 export interface NormalizedAtc {
