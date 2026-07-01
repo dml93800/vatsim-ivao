@@ -3,18 +3,11 @@ import airportsData from "@/data/airports.json";
 
 const VATSIM_DATA_URL = "https://data.vatsim.net/v3/vatsim-data.json";
 
-// ICAO -> [lat, lon]. Le flux VATSIM v3 ne fournit PAS les coordonnées des
-// contrôleurs directement, seulement leur callsign (ex: "LFPG_TWR"). On
-// déduit donc la position depuis le code OACI préfixant le callsign.
-const AIRPORTS: Record<string, [number, number]> = airportsData as unknown as Record<
+const AIRPORTS: Record<string, [number, number]> = airportsData as unknown as Record
   string,
   [number, number]
 >;
 
-/**
- * Extrait un code OACI probable depuis un callsign ATC VATSIM/IVAO.
- * Ex: "LFPG_TWR" -> "LFPG", "EHAM_N_APP" -> "EHAM", "SCT_CTR" -> null (pas un code OACI)
- */
 function resolveAtcPosition(callsign: string): [number, number] | null {
   const prefix = callsign.split("_")[0];
   if (AIRPORTS[prefix]) {
@@ -23,7 +16,6 @@ function resolveAtcPosition(callsign: string): [number, number] | null {
   return null;
 }
 
-// Mapping du champ "facility" numérique VATSIM vers un type lisible
 const FACILITY_MAP: Record<number, string> = {
   0: "OBS",
   1: "FSS",
@@ -34,8 +26,6 @@ const FACILITY_MAP: Record<number, string> = {
   6: "CTR",
 };
 
-// Portée de couverture approximative (nm) selon le type de position,
-// utilisée uniquement pour l'affichage du cercle sur la carte
 const VISUAL_RANGE_MAP: Record<string, number> = {
   DEL: 5,
   GND: 5,
@@ -55,6 +45,7 @@ interface VatsimRawPilot {
   groundspeed: number;
   heading: number;
   transponder: string;
+  logon_time?: string;
   flight_plan?: {
     aircraft_short?: string;
     departure?: string;
@@ -78,7 +69,6 @@ interface VatsimRawData {
 
 export async function fetchVatsimSnapshot(): Promise<NetworkSnapshot> {
   const res = await fetch(VATSIM_DATA_URL, {
-    // VATSIM met à jour son flux toutes les 15s, inutile de spammer plus souvent
     next: { revalidate: 15 },
   });
 
@@ -104,10 +94,11 @@ export async function fetchVatsimSnapshot(): Promise<NetworkSnapshot> {
       route: p.flight_plan?.route ?? null,
       pilotName: p.name ?? null,
       transponder: p.transponder ?? null,
+      logonTime: p.logon_time ?? null,
     }));
 
   const atc = raw.controllers
-    .filter((c) => c.facility > 0) // on exclut les observateurs (facility 0)
+    .filter((c) => c.facility > 0)
     .map((c): NormalizedAtc | null => {
       const facilityType = FACILITY_MAP[c.facility] ?? "UNK";
       const position = resolveAtcPosition(c.callsign);
