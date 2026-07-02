@@ -8,9 +8,6 @@ const NETWORK_COLOR: Record<Network, string> = {
   ivao: "#ff5c8a",
 };
 
-// pics.avs.io attend le code IATA (2 lettres), alors que le callsign VATSIM/IVAO
-// donne le code ICAO (3 lettres). Table de correspondance pour les compagnies les
-// plus fréquentes sur le réseau ; complétable au besoin.
 const ICAO_TO_IATA: Record<string, string> = {
   AFR: "AF", // Air France
   BAW: "BA", // British Airways
@@ -67,8 +64,6 @@ const ICAO_TO_IATA: Record<string, string> = {
   AZU: "AD", // Azul
 };
 
-// Déduit le code ICAO compagnie depuis le callsign (ex: "AFR1234" -> "AFR"),
-// puis le convertit en IATA via la table ci-dessus
 function airlineLogoCode(callsign: string): { icao: string; iata: string | null } | null {
   const match = callsign.match(/^[A-Za-z]{2,4}/);
   if (!match) return null;
@@ -103,13 +98,11 @@ export default function FlightDetailPanel({
   const airline = airlineLogoCode(pilot.callsign);
   const logoUrl = airline?.iata ? `https://pics.avs.io/200/200/${airline.iata}.png` : null;
 
-  // Durée de vol mise à jour chaque minute pour rester live
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(interval);
   }, []);
 
-  // Recherche de la photo de l'appareil via notre route API (croise compagnie + type)
   useEffect(() => {
     setAircraftPhoto(null);
     if (!pilot.aircraftType) return;
@@ -138,7 +131,7 @@ export default function FlightDetailPanel({
       className="absolute top-4 right-4 bottom-4 w-[420px] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 z-[1100] flex flex-col font-mono text-chart-ink overflow-hidden"
       style={{ background: "linear-gradient(180deg,#18233a,#0f1828)", boxShadow: "0 30px 70px -20px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.1)" }}
     >
-      {/* Photo de l'appareil en bandeau, ou un fond neutre si pas trouvée */}
+      {/* Photo de l'appareil en bandeau */}
       <div className="relative w-full h-[220px] bg-chart-paper border-b border-white/10 shrink-0">
         {aircraftPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -174,7 +167,8 @@ export default function FlightDetailPanel({
         </div>
       </div>
 
-      <div className="p-5 flex flex-col gap-5 text-[13px]">
+      {/* Contenu scrollable */}
+      <div className="p-5 flex flex-col gap-5 text-[13px] overflow-y-auto flex-1">
         <div>
           <div className="text-chart-ink-dim text-[11px] tracking-widest mb-1">PILOTE</div>
           <div className="text-[14px]">{pilot.pilotName ?? "Inconnu"}</div>
