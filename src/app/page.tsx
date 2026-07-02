@@ -30,7 +30,7 @@ export default function Home() {
             Flight<span className="text-chart-blue">Track</span>
           </h1>
           <span className="font-serif text-[10.5px] font-medium tracking-[.22em] uppercase text-chart-ink-dim">
-            by <span className="text-chart-magenta font-bold">IVAO DZ</span>
+            by <span className="font-bold italic" style={{ color: "#88F600" }}>TOUATI</span>
           </span>
         </div>
 
