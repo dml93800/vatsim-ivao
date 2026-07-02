@@ -12,23 +12,12 @@ function resolveAtcPosition(callsign: string): [number, number] | null {
 }
 
 const VISUAL_RANGE_MAP: Record<string, number> = {
-  DEL: 5,
-  GND: 5,
-  TWR: 30,
-  APP: 60,
-  CTR: 150,
-  FSS: 300,
-  OBS: 0,
+  DEL: 5, GND: 5, TWR: 30, APP: 60, CTR: 150, FSS: 300, OBS: 0,
 };
 
-interface IvaoLastTrack {
-  latitude: number;
-  longitude: number;
-  altitude: number;
-  groundSpeed: number;
-  heading: number;
-  transponder: string;
-  timestamp: string;
+interface IvaoAircraft {
+  icaoCode?: string | null;
+  model?: string | null;
 }
 
 interface IvaoFlightPlan {
@@ -36,6 +25,17 @@ interface IvaoFlightPlan {
   arrivalId?: string | null;
   aircraftId?: string | null;
   route?: string | null;
+  aircraft?: IvaoAircraft | null;
+}
+
+interface IvaoLastTrack {
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  groundSpeed: number;
+  heading: number;
+  transponder: number | string;
+  timestamp: string;
 }
 
 interface IvaoPilot {
@@ -46,12 +46,18 @@ interface IvaoPilot {
   createdAt?: string | null;
 }
 
+interface IvaoAtcSession {
+  frequency?: number | null;
+  position?: string | null;
+}
+
 interface IvaoAtc {
   callsign: string;
   userId: number;
-  atcSession?: {
-    frequency?: string | null;
-    position?: string | null;
+  atcSession?: IvaoAtcSession | null;
+  lastTrack?: {
+    latitude: number;
+    longitude: number;
   } | null;
 }
 
@@ -86,27 +92,42 @@ export async function fetchIvaoSnapshot(): Promise<NetworkSnapshot> {
       heading: p.lastTrack!.heading,
       altitude: p.lastTrack!.altitude,
       groundspeed: p.lastTrack!.groundSpeed,
-      aircraftType: p.flightPlan?.aircraftId ?? null,
+      // Priorité à aircraft.icaoCode (type précis), fallback sur aircraftId
+      aircraftType: p.flightPlan?.aircraft?.icaoCode ?? p.flightPlan?.aircraftId ?? null,
       departure: p.flightPlan?.departureId ?? null,
       arrival: p.flightPlan?.arrivalId ?? null,
       route: p.flightPlan?.route ?? null,
       pilotName: `IVAO #${p.userId}`,
-      transponder: p.lastTrack!.transponder ?? null,
+      transponder: String(p.lastTrack!.transponder) ?? null,
       logonTime: p.createdAt ?? null,
     }));
 
   const atc: NormalizedAtc[] = rawAtcs
     .map((c): NormalizedAtc | null => {
-      const position = resolveAtcPosition(c.callsign);
-      if (!position) return null;
-      const callsignParts = c.callsign.split("_");
-      const facilityType = callsignParts[callsignParts.length - 1] ?? "UNK";
+      // Utilise la position du lastTrack si dispo, sinon résout depuis le callsign
+      let lat: number, lon: number;
+      if (c.lastTrack?.latitude && c.lastTrack?.longitude) {
+        lat = c.lastTrack.latitude;
+        lon = c.lastTrack.longitude;
+      } else {
+        const position = resolveAtcPosition(c.callsign);
+        if (!position) return null;
+        [lat, lon] = position;
+      }
+
+      // Position type depuis atcSession, sinon parse le callsign
+      const facilityType = c.atcSession?.position ??
+        c.callsign.split("_").pop() ?? "UNK";
+
       return {
         callsign: c.callsign,
         network: "ivao" as const,
-        latitude: position[0],
-        longitude: position[1],
-        frequency: c.atcSession?.frequency ?? null,
+        latitude: lat,
+        longitude: lon,
+        // Fréquence en number → string avec 3 décimales
+        frequency: c.atcSession?.frequency != null
+          ? c.atcSession.frequency.toFixed(3)
+          : null,
         facilityType,
         controllerName: `IVAO #${c.userId}`,
         visualRange: VISUAL_RANGE_MAP[facilityType] ?? 30,
