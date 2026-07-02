@@ -1,13 +1,141 @@
-import { NetworkSnapshot } from "@/types/flight";
+import { NormalizedAtc, NormalizedPilot, NetworkSnapshot } from "@/types/flight";
+import airportsData from "@/data/airports.json";
 
-// IVAO API v2 nécessite une authentification OAuth2 (client_id/secret) via
-// leur portail développeur (https://api.ivao.aero). À implémenter au jour 2
-// une fois la clé API obtenue. Structure laissée en place pour brancher
-// facilement une fois prêt, en gardant le même format de sortie normalisé
-// que l'adapter VATSIM.
+const IVAO_DATA_URL = "https://api.ivao.aero/v2/tracker/whazzup";
+
+// ICAO -> [lat, lon] pour résoudre la position des contrôleurs
+const AIRPORTS: Record<string, [number, number]> = airportsData as unknown as Record<string, [number, number]>;
+
+function resolveAtcPosition(callsign: string): [number, number] | null {
+  const prefix = callsign.split("_")[0];
+  if (AIRPORTS[prefix]) return AIRPORTS[prefix];
+  return null;
+}
+
+// Mapping facility IVAO -> type lisible
+const FACILITY_MAP: Record<number, string> = {
+  0: "OBS",
+  1: "FSS",
+  2: "DEL",
+  3: "GND",
+  4: "TWR",
+  5: "APP",
+  6: "CTR",
+  7: "FSS",
+};
+
+const VISUAL_RANGE_MAP: Record<string, number> = {
+  DEL: 5,
+  GND: 5,
+  TWR: 30,
+  APP: 60,
+  CTR: 150,
+  FSS: 300,
+  OBS: 0,
+};
+
+interface IvaoLastTrack {
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  groundSpeed: number;
+  heading: number;
+  transponder: string;
+  timestamp: string;
+}
+
+interface IvaoFlightPlan {
+  departureId?: string | null;
+  arrivalId?: string | null;
+  aircraftId?: string | null;
+  route?: string | null;
+}
+
+interface IvaoPilot {
+  callsign: string;
+  userId: number;
+  lastTrack?: IvaoLastTrack | null;
+  flightPlan?: IvaoFlightPlan | null;
+  createdAt?: string | null;
+  user?: { firstName?: string; lastName?: string } | null;
+}
+
+interface IvaoAtc {
+  callsign: string;
+  userId: number;
+  rating?: number | null;
+  atcSession?: {
+    frequency?: string | null;
+    position?: string | null;
+  } | null;
+  user?: { firstName?: string; lastName?: string } | null;
+}
+
+interface IvaoWhazzup {
+  clients?: {
+    pilots?: IvaoPilot[];
+    atcs?: IvaoAtc[];
+  };
+}
 
 export async function fetchIvaoSnapshot(): Promise<NetworkSnapshot> {
-  throw new Error(
-    "IVAO pas encore branché — nécessite une clé API développeur (api.ivao.aero). À venir."
-  );
+  const res = await fetch(IVAO_DATA_URL, {
+    // IVAO met à jour toutes les 15s
+    next: { revalidate: 15 },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur IVAO API: ${res.status}`);
+  }
+
+  const raw: IvaoWhazzup = await res.json();
+
+  const rawPilots = raw.clients?.pilots ?? [];
+  const rawAtcs = raw.clients?.atcs ?? [];
+
+  const pilots: NormalizedPilot[] = rawPilots
+    .filter((p) => p.lastTrack && (p.lastTrack.latitude !== 0 || p.lastTrack.longitude !== 0))
+    .map((p) => ({
+      callsign: p.callsign,
+      network: "ivao" as const,
+      latitude: p.lastTrack!.latitude,
+      longitude: p.lastTrack!.longitude,
+      heading: p.lastTrack!.heading,
+      altitude: p.lastTrack!.altitude,
+      groundspeed: p.lastTrack!.groundSpeed,
+      aircraftType: p.flightPlan?.aircraftId ?? null,
+      departure: p.flightPlan?.departureId ?? null,
+      arrival: p.flightPlan?.arrivalId ?? null,
+      route: p.flightPlan?.route ?? null,
+      pilotName: p.user ? `${p.user.firstName ?? ""} ${p.user.lastName ?? ""}`.trim() : null,
+      transponder: p.lastTrack!.transponder ?? null,
+      logonTime: p.createdAt ?? null,
+    }));
+
+  const atc: NormalizedAtc[] = rawAtcs
+    .map((c): NormalizedAtc | null => {
+      const position = resolveAtcPosition(c.callsign);
+      if (!position) return null;
+      const callsignParts = c.callsign.split("_");
+      const facilityStr = callsignParts[callsignParts.length - 1];
+      const facilityType = facilityStr ?? "UNK";
+      return {
+        callsign: c.callsign,
+        network: "ivao" as const,
+        latitude: position[0],
+        longitude: position[1],
+        frequency: c.atcSession?.frequency ?? null,
+        facilityType,
+        controllerName: c.user ? `${c.user.firstName ?? ""} ${c.user.lastName ?? ""}`.trim() : null,
+        visualRange: VISUAL_RANGE_MAP[facilityType] ?? 30,
+      };
+    })
+    .filter((c): c is NormalizedAtc => c !== null);
+
+  return {
+    network: "ivao",
+    fetchedAt: new Date().toISOString(),
+    pilots,
+    atc,
+  };
 }
