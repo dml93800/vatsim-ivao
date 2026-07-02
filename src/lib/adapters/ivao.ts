@@ -3,7 +3,6 @@ import airportsData from "@/data/airports.json";
 
 const IVAO_DATA_URL = "https://api.ivao.aero/v2/tracker/whazzup";
 
-// ICAO -> [lat, lon] pour résoudre la position des contrôleurs
 const AIRPORTS: Record<string, [number, number]> = airportsData as unknown as Record<string, [number, number]>;
 
 function resolveAtcPosition(callsign: string): [number, number] | null {
@@ -45,18 +44,15 @@ interface IvaoPilot {
   lastTrack?: IvaoLastTrack | null;
   flightPlan?: IvaoFlightPlan | null;
   createdAt?: string | null;
-  user?: { firstName?: string; lastName?: string } | null;
 }
 
 interface IvaoAtc {
   callsign: string;
   userId: number;
-  rating?: number | null;
   atcSession?: {
     frequency?: string | null;
     position?: string | null;
   } | null;
-  user?: { firstName?: string; lastName?: string } | null;
 }
 
 interface IvaoWhazzup {
@@ -68,7 +64,6 @@ interface IvaoWhazzup {
 
 export async function fetchIvaoSnapshot(): Promise<NetworkSnapshot> {
   const res = await fetch(IVAO_DATA_URL, {
-    // IVAO met à jour toutes les 15s
     next: { revalidate: 15 },
   });
 
@@ -95,7 +90,7 @@ export async function fetchIvaoSnapshot(): Promise<NetworkSnapshot> {
       departure: p.flightPlan?.departureId ?? null,
       arrival: p.flightPlan?.arrivalId ?? null,
       route: p.flightPlan?.route ?? null,
-      pilotName: p.user ? `${p.user.firstName ?? ""} ${p.user.lastName ?? ""}`.trim() : null,
+      pilotName: `IVAO #${p.userId}`,
       transponder: p.lastTrack!.transponder ?? null,
       logonTime: p.createdAt ?? null,
     }));
@@ -113,7 +108,7 @@ export async function fetchIvaoSnapshot(): Promise<NetworkSnapshot> {
         longitude: position[1],
         frequency: c.atcSession?.frequency ?? null,
         facilityType,
-        controllerName: c.user ? `${c.user.firstName ?? ""} ${c.user.lastName ?? ""}`.trim() : null,
+        controllerName: `IVAO #${c.userId}`,
         visualRange: VISUAL_RANGE_MAP[facilityType] ?? 30,
       };
     })
