@@ -12,18 +12,6 @@ function resolveAtcPosition(callsign: string): [number, number] | null {
   return null;
 }
 
-// Mapping facility IVAO -> type lisible
-const FACILITY_MAP: Record<number, string> = {
-  0: "OBS",
-  1: "FSS",
-  2: "DEL",
-  3: "GND",
-  4: "TWR",
-  5: "APP",
-  6: "CTR",
-  7: "FSS",
-};
-
 const VISUAL_RANGE_MAP: Record<string, number> = {
   DEL: 5,
   GND: 5,
@@ -117,8 +105,7 @@ export async function fetchIvaoSnapshot(): Promise<NetworkSnapshot> {
       const position = resolveAtcPosition(c.callsign);
       if (!position) return null;
       const callsignParts = c.callsign.split("_");
-      const facilityStr = callsignParts[callsignParts.length - 1];
-      const facilityType = facilityStr ?? "UNK";
+      const facilityType = callsignParts[callsignParts.length - 1] ?? "UNK";
       return {
         callsign: c.callsign,
         network: "ivao" as const,
