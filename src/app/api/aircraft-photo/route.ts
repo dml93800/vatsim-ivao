@@ -1,26 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PLANESPOTTERS_API = "https://api.planespotters.net/pub/photos/hex";
-
 // Silhouettes par type d'appareil (image blanche/générique)
-// Source : silhouettes publiques par type ICAO
 function getSilhouetteUrl(aircraftType: string | null): string {
   const type = (aircraftType ?? "").toUpperCase().slice(0, 4);
-  // Planespotters fournit aussi des silhouettes génériques
   return `https://www.planespotters.net/silhouettes/${type}.png`;
 }
 
-// Codes ICAO des vraies compagnies aériennes (liste partielle des principales)
+// Codes ICAO des vraies compagnies aériennes
 const REAL_AIRLINES = new Set([
   "AAL","UAL","DAL","SWA","JBU","ACA","WJA","AFR","BAW","DLH","KLM","EZY",
   "RYR","VLG","IBE","TAP","SWR","AUA","THY","UAE","QTR","ETD","SVA","MSR",
   "RAM","DAH","TUN","JAL","ANA","CES","CCA","CSN","SIA","CPA","KAL","THA",
   "GIA","AIC","ELY","QFA","ANZ","ETH","KQA","SAA","MGL","TGW","AVA","GLO",
   "AZU","LAN","ARG","TAM","AZA","NAX","FIN","SAS","ICE","WZZ","PGT","AFL",
-  "BEL","VIR","EIN","AER","LOT","CSA","MAY","THY","PIA","TGW","MEA","GFA",
-  "OMA","SVA","IRA","TBT","KAC","JZA","WAN","CAW","CHH","HXA","DKH","OKA",
-  "UZB","TCV","ROU","TCW","SEY","MDA","BCI","LAO","ANG","PAC","AIZ","FJI",
-  "NCA","JSA","JTA","HAL","WestJet","SWA","ASA","SKW","EWR","VXP","DBA",
+  "BEL","VIR","EIN","AER","LOT","CSA","MAY","MEA","GFA","OMA","IRA","TBT",
+  "KAC","CHH","HXA","DKH","OKA","UZB","TCV","ROU","TCW","SEY","MDA","BCI",
+  "LAO","ANG","PAC","AIZ","FJI","NCA","JSA","JTA","HAL","ASA","SKW","EWR",
 ]);
 
 function isRealAirline(callsign: string): boolean {
@@ -38,7 +33,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ url: null });
   }
 
-  // Si c'est une VA ou compagnie inconnue → silhouette générique
+  // VA ou compagnie inconnue → silhouette générique
   if (!airline || !isRealAirline(airline)) {
     return NextResponse.json({
       url: `https://www.planespotters.net/silhouettes/${type.toUpperCase().slice(0, 4)}.png`,
@@ -46,7 +41,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Vraie compagnie → cherche une photo réelle via Planespotters
+  // Vraie compagnie → photo réelle via Planespotters
   try {
     const res = await fetch(
       `https://api.planespotters.net/pub/photos/airline/${airline}/${type}`,
